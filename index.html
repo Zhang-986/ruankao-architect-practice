@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>系统架构设计师练题台</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <aside class="sidebar">
+        <div class="brand">
+          <span class="brand-mark">SA</span>
+          <div>
+            <h1>系统架构设计师练题台</h1>
+            <p>本地题库 · 浏览器数据库 · AI 诊断导出</p>
+          </div>
+        </div>
+        <nav class="nav" aria-label="主导航">
+          <button class="nav-button active" data-view="practice" type="button">选择题</button>
+          <button class="nav-button" data-view="wrong" type="button">错题</button>
+          <button class="nav-button" data-view="stats" type="button">统计</button>
+          <button class="nav-button" data-view="cases" type="button">案例</button>
+          <button class="nav-button" data-view="essays" type="button">论文</button>
+          <button class="nav-button" data-view="data" type="button">数据</button>
+        </nav>
+        <div class="side-stat">
+          <span>题库</span>
+          <strong id="bankCount">加载中</strong>
+        </div>
+        <div class="side-stat">
+          <span>作答</span>
+          <strong id="attemptCount">0</strong>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="toolbar">
+          <div>
+            <p class="eyebrow">Ruankao Architect</p>
+            <h2 id="viewTitle">选择题</h2>
+          </div>
+          <div class="toolbar-actions">
+            <button id="exportDiagnosisTop" class="primary" type="button">导出 AI 诊断</button>
+          </div>
+        </header>
+
+        <section id="notice" class="notice" hidden></section>
+
+        <section class="type-board" aria-label="题型分类">
+          <button class="type-button active" data-type-view="practice" type="button" aria-pressed="true">
+            <span>综合知识选择题</span>
+            <strong id="choiceTypeCount">加载中</strong>
+            <small>客观题 · 自动判分</small>
+          </button>
+          <button class="type-button" data-type-view="cases" type="button" aria-pressed="false">
+            <span>案例分析问答题</span>
+            <strong id="caseTypeCount">加载中</strong>
+            <small>主观题 · 看参考答案</small>
+          </button>
+          <button class="type-button" data-type-view="essays" type="button" aria-pressed="false">
+            <span>架构论文题</span>
+            <strong id="essayTypeCount">加载中</strong>
+            <small>写作题 · 看写作要点</small>
+          </button>
+        </section>
+
+        <section id="practiceView" class="view active-view">
+          <div class="mode-board">
+            <button class="mode-button active" data-mode="continue" type="button">
+              <b>继续练习</b>
+              <strong id="continueModeCount">加载中</strong>
+              <span>按题库顺序推进</span>
+            </button>
+            <button class="mode-button" data-mode="review" type="button">
+              <b>记忆复习</b>
+              <strong id="reviewModeCount">加载中</strong>
+              <span>错题和到期题优先</span>
+            </button>
+            <button class="mode-button" data-mode="special" type="button">
+              <b>章节练习</b>
+              <strong id="specialModeCount">加载中</strong>
+              <span>按模块突破</span>
+            </button>
+            <button class="mode-button" data-mode="exam" type="button">
+              <b>真题套卷</b>
+              <strong id="examModeCount">加载中</strong>
+              <span>同一年份刷题</span>
+            </button>
+            <button class="mode-button" data-mode="wrong" type="button">
+              <b>错题重刷</b>
+              <strong id="wrongModeCount">加载中</strong>
+              <span>只看错题</span>
+            </button>
+            <button class="mode-button" data-mode="favorite" type="button">
+              <b>收藏题</b>
+              <strong id="favoriteModeCount">加载中</strong>
+              <span>主动标记重点题</span>
+            </button>
+            <button class="mode-button" data-mode="all" type="button">
+              <b>题库浏览</b>
+              <strong id="allModeCount">加载中</strong>
+              <span>自由筛选</span>
+            </button>
+          </div>
+
+          <section class="chapter-board" aria-label="章节进度">
+            <div class="chapter-head">
+              <h3>章节进度</h3>
+              <span>按模块刷题 · 看进度和薄弱点</span>
+            </div>
+            <div id="chapterList" class="chapter-list"></div>
+          </section>
+
+          <details class="filter-drawer">
+            <summary>筛选、复习题数与关键词</summary>
+            <div class="panel filters">
+              <label>
+                复习题数
+                <input id="dailyCount" type="number" min="5" max="75" step="5" value="20" />
+              </label>
+              <label>
+                来源
+                <select id="sourceFilter"></select>
+              </label>
+              <label>
+                年份/卷
+                <select id="termFilter"></select>
+              </label>
+              <label>
+                模块
+                <select id="moduleFilter"></select>
+              </label>
+              <label>
+                状态
+                <select id="statusFilter">
+                  <option value="all">全部</option>
+                  <option value="unanswered">未做</option>
+                  <option value="due">待复习</option>
+                  <option value="wrong">错题</option>
+                </select>
+              </label>
+              <label class="search-box">
+                关键词
+                <input id="keywordFilter" type="search" placeholder="架构、Redis、网络..." />
+              </label>
+              <button id="applyFilters" type="button">筛题</button>
+            </div>
+          </details>
+
+          <div class="practice-layout">
+            <section class="question-panel">
+              <div class="question-paper">
+                <div class="question-topline">
+                  <div>
+                    <div class="question-meta" id="questionMeta">题目加载中</div>
+                    <h3 id="questionStem"></h3>
+                  </div>
+                  <div class="question-progress" id="questionProgress">0/0</div>
+                </div>
+                <div id="optionList" class="option-list"></div>
+                <div class="answer-row">
+                  <button id="prevQuestion" type="button">上一题</button>
+                  <button id="nextQuestion" class="primary" type="button">下一题</button>
+                  <button id="toggleFavorite" type="button">收藏本题</button>
+                </div>
+                <div id="answerResult" class="answer-result" hidden></div>
+              </div>
+              <div class="source-box" id="sourceBox"></div>
+            </section>
+
+            <aside class="panel queue-panel">
+              <h3 id="modeLabel">继续练习</h3>
+              <p id="queueSummary">0 道题</p>
+              <div class="queue-toolbar">
+                <button id="queuePrevPage" type="button" aria-label="上一段题号">‹</button>
+                <span id="queuePageLabel">0 / 0</span>
+                <button id="queueNextPage" type="button" aria-label="下一段题号">›</button>
+              </div>
+              <div id="queueLegend" class="queue-legend"></div>
+              <div id="questionQueue" class="question-queue"></div>
+            </aside>
+          </div>
+
+          <details class="study-drawer">
+          <summary>
+            <span>备考计划与题库说明</span>
+            <strong id="sourceSummary">加载中</strong>
+          </summary>
+          <section class="overview-board">
+            <div class="plan-card">
+              <div class="section-kicker">学习计划</div>
+              <h3>先稳综合知识，再用错题决定补哪块基础</h3>
+              <div id="studyPlanList" class="plan-list"></div>
+            </div>
+            <div class="site-card">
+              <div class="section-kicker">网站功能</div>
+              <h3>这里能做什么</h3>
+              <ul class="feature-list">
+                <li>继续练习：按题库顺序接着上次位置往后做</li>
+                <li>记忆复习：错题和到期题优先，连续做对后降低频率</li>
+                <li>章节练习：按架构、数据库、网络、安全等模块刷</li>
+                <li>真题套卷：按年份/批次练同一套真题</li>
+                <li>答题卡分段：所有题都能按页切换，不截断题号</li>
+                <li>AI 诊断：导出 JSON 给 Codex 做复盘</li>
+              </ul>
+            </div>
+            <div class="source-card">
+              <div class="section-kicker">题目来源</div>
+              <h3>可追溯题库</h3>
+              <p id="sourceDetail">每道题都会显示来源年份、真题/模拟、题号和模块。</p>
+            </div>
+          </section>
+          </details>
+        </section>
+
+        <section id="wrongView" class="view">
+          <div class="panel">
+            <h3>错题本</h3>
+            <div id="wrongList" class="item-list"></div>
+          </div>
+        </section>
+
+        <section id="statsView" class="view">
+          <div class="stats-grid">
+            <div class="metric"><span>总作答</span><strong id="metricTotal">0</strong></div>
+            <div class="metric"><span>正确率</span><strong id="metricAccuracy">0%</strong></div>
+            <div class="metric"><span>错题</span><strong id="metricWrong">0</strong></div>
+            <div class="metric"><span>已覆盖题目</span><strong id="metricAnswered">0</strong></div>
+          </div>
+          <div class="panel">
+            <h3>模块表现</h3>
+            <div id="moduleStats" class="stat-table"></div>
+          </div>
+        </section>
+
+        <section id="casesView" class="view">
+          <div class="panel">
+            <h3>案例分析题库</h3>
+            <div id="caseList" class="item-list"></div>
+          </div>
+        </section>
+
+        <section id="essaysView" class="view">
+          <div class="panel">
+            <h3>论文题库</h3>
+            <div id="essayList" class="item-list"></div>
+          </div>
+        </section>
+
+        <section id="dataView" class="view">
+          <div class="data-grid">
+            <div class="panel">
+              <h3>AI 友好诊断</h3>
+              <p>导出的 JSON 包含题库来源、模块统计、近期错题、全部作答轨迹和诊断提示。发给 Codex 就能继续复盘。</p>
+              <button id="exportDiagnosis" class="primary" type="button">下载 ai-diagnosis.json</button>
+            </div>
+            <div class="panel">
+              <h3>练习记录备份</h3>
+              <p>备份只包含你的作答记录，不包含浏览器外的任何账号信息。</p>
+              <div class="button-row">
+                <button id="exportProgress" type="button">导出进度</button>
+                <label class="file-button">
+                  导入进度
+                  <input id="importProgress" type="file" accept="application/json" />
+                </label>
+                <button id="clearProgress" class="danger" type="button">清空记录</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="./src/app.mjs"></script>
+  </body>
+</html>
