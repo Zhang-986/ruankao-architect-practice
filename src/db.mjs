@@ -46,6 +46,12 @@ export async function clearAttempts() {
   return clearStore(db, ATTEMPTS_STORE);
 }
 
+export async function clearProgressData() {
+  const db = await openPracticeDb();
+  await clearStore(db, ATTEMPTS_STORE);
+  await clearStore(db, BOOKMARKS_STORE);
+}
+
 export async function getBookmarks() {
   const db = await openPracticeDb();
   return readAll(db, BOOKMARKS_STORE);

@@ -12,12 +12,13 @@ import {
   questionSourceLabel,
   summarizeMemory,
   summarizeModules,
+  summarizeProgressPayload,
   summarizeAttempts,
   uniqueSorted,
 } from "./core.mjs";
 import {
   addAttempt,
-  clearAttempts,
+  clearProgressData,
   exportProgress,
   getBookmarks,
   getAttempts,
@@ -41,6 +42,7 @@ const state = {
   questionStartedAt: Date.now(),
   currentView: "practice",
   filters: { ...emptyFilters },
+  pendingProgress: null,
 };
 
 const $ = (id) => document.getElementById(id);
@@ -104,8 +106,11 @@ function bindEvents() {
   $("queuePrevPage").addEventListener("click", () => changeQueuePage(-1));
   $("queueNextPage").addEventListener("click", () => changeQueuePage(1));
   $("exportDiagnosis").addEventListener("click", downloadDiagnosis);
-  $("exportDiagnosisTop").addEventListener("click", downloadDiagnosis);
+  $("importProgressTop").addEventListener("click", chooseProgressFile);
+  $("exportProgressTop").addEventListener("click", downloadProgress);
   $("exportProgress").addEventListener("click", downloadProgress);
+  $("selectProgressFile").addEventListener("click", chooseProgressFile);
+  $("applyProgressImport").addEventListener("click", applyPendingProgress);
   $("importProgress").addEventListener("change", importProgressFile);
   $("clearProgress").addEventListener("click", clearProgress);
 }
@@ -153,7 +158,6 @@ function applyFilters() {
 function renderAll() {
   $("bankCount").textContent = `${state.bank.choices.length} 选择题`;
   $("attemptCount").textContent = `${state.attempts.length}`;
-  renderTypeBoard();
   renderModeCounts();
   renderChapterBoard();
   renderOverview();
@@ -162,13 +166,6 @@ function renderAll() {
   renderWrong();
   renderCases();
   renderEssays();
-}
-
-function renderTypeBoard() {
-  $("choiceTypeCount").textContent = `${state.bank.choices.length} 题`;
-  $("caseTypeCount").textContent = `${state.bank.cases.length} 题`;
-  $("essayTypeCount").textContent = `${state.bank.essays.length} 题`;
-  syncTypeButtons();
 }
 
 function renderOverview() {
@@ -659,28 +656,66 @@ async function downloadProgress() {
   downloadJson("ruankao-progress.json", await exportProgress());
 }
 
+function chooseProgressFile() {
+  $("importProgress").click();
+}
+
 async function importProgressFile(event) {
   const file = event.target.files?.[0];
   if (!file) return;
   try {
     const payload = JSON.parse(await file.text());
-    state.attempts = await importProgress(payload);
-    state.bookmarks = await getBookmarks();
-    renderAll();
-    showNotice("进度已导入。", "ok");
+    state.pendingProgress = payload;
+    renderProgressPreview(summarizeProgressPayload(payload), file.name);
+    $("applyProgressImport").disabled = false;
+    switchView("data");
+    showNotice("已读取进度 JSON，请确认后应用。", "ok");
   } catch (error) {
+    state.pendingProgress = null;
+    $("applyProgressImport").disabled = true;
     showNotice(`导入失败：${error.message}`, "error");
   } finally {
     event.target.value = "";
   }
 }
 
+async function applyPendingProgress() {
+  if (!state.pendingProgress) {
+    showNotice("先选择一个进度 JSON。", "warn");
+    return;
+  }
+  if (!confirm("确定用这个 JSON 替换当前浏览器里的练习进度吗？")) return;
+  state.attempts = await importProgress(state.pendingProgress);
+  state.bookmarks = await getBookmarks();
+  state.pendingProgress = null;
+  $("applyProgressImport").disabled = true;
+  applyFilters();
+  renderAll();
+  showNotice("进度已应用。", "ok");
+}
+
 async function clearProgress() {
   if (!confirm("确定清空所有本地作答记录吗？")) return;
-  await clearAttempts();
+  await clearProgressData();
   state.attempts = [];
+  state.bookmarks = [];
+  state.pendingProgress = null;
+  $("applyProgressImport").disabled = true;
   renderAll();
   showNotice("本地记录已清空。", "ok");
+}
+
+function renderProgressPreview(summary, filename = "") {
+  $("progressPreview").innerHTML = `
+    <div class="progress-preview-grid">
+      <span><b>文件</b>${escapeHtml(filename || "未命名 JSON")}</span>
+      <span><b>作答记录</b>${summary.attempts}</span>
+      <span><b>覆盖题目</b>${summary.answeredQuestions}</span>
+      <span><b>错题</b>${summary.wrong}</span>
+      <span><b>收藏题</b>${summary.bookmarks}</span>
+      <span><b>最近作答</b>${summary.latestAt ? escapeHtml(formatDateTime(summary.latestAt)) : "暂无"}</span>
+    </div>
+  `;
 }
 
 function downloadJson(filename, payload) {

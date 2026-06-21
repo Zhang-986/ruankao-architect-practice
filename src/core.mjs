@@ -205,6 +205,29 @@ export function summarizeMemory(questions, attempts, options = {}) {
   };
 }
 
+export function summarizeProgressPayload(payload) {
+  if (!payload || payload.schemaVersion !== 1 || !Array.isArray(payload.attempts)) {
+    throw new Error("进度 JSON 格式不正确");
+  }
+  const attempts = payload.attempts;
+  const bookmarks = Array.isArray(payload.bookmarks) ? payload.bookmarks : [];
+  const latest = latestAttemptByQuestion(attempts);
+  const wrong = [...latest.values()].filter((attempt) => !attempt.correct).length;
+  const latestAt = attempts
+    .map((attempt) => attempt.answeredAt)
+    .filter(Boolean)
+    .sort((a, b) => String(b).localeCompare(String(a)))[0] || "";
+  return {
+    schemaVersion: payload.schemaVersion,
+    exportedAt: payload.exportedAt || "",
+    attempts: attempts.length,
+    answeredQuestions: latest.size,
+    wrong,
+    bookmarks: bookmarks.length,
+    latestAt,
+  };
+}
+
 export function summarizeModules(questions, attempts, options = {}) {
   const latest = latestAttemptByQuestion(attempts);
   const memory = memoryCardsByQuestion(questions, attempts, options);

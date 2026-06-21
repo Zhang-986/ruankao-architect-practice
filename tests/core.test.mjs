@@ -11,6 +11,7 @@ import {
   questionSourceLabel,
   summarizeMemory,
   summarizeModules,
+  summarizeProgressPayload,
   summarizeAttempts,
 } from "../src/core.mjs";
 
@@ -74,6 +75,24 @@ test("summarizes module progress for chapter navigation", () => {
   assert.equal(architecture.due, 1);
   assert.equal(database.progress, 1);
   assert.equal(database.accuracy, 1);
+});
+
+test("summarizes imported progress JSON before applying it", () => {
+  const summary = summarizeProgressPayload({
+    schemaVersion: 1,
+    exportedAt: "2026-06-21T03:00:00.000Z",
+    attempts: [
+      { questionId: "q1", correct: false, answeredAt: "2026-06-21T01:00:00.000Z" },
+      { questionId: "q1", correct: true, answeredAt: "2026-06-21T02:00:00.000Z" },
+      { questionId: "q2", correct: false, answeredAt: "2026-06-21T02:30:00.000Z" },
+    ],
+    bookmarks: [{ questionId: "q3", createdAt: "2026-06-21T02:40:00.000Z" }],
+  });
+  assert.equal(summary.attempts, 3);
+  assert.equal(summary.answeredQuestions, 2);
+  assert.equal(summary.wrong, 1);
+  assert.equal(summary.bookmarks, 1);
+  assert.equal(summary.latestAt, "2026-06-21T02:30:00.000Z");
 });
 
 test("formats clear source labels", () => {

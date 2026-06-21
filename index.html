@@ -41,29 +41,12 @@
             <h2 id="viewTitle">选择题</h2>
           </div>
           <div class="toolbar-actions">
-            <button id="exportDiagnosisTop" class="primary" type="button">导出 AI 诊断</button>
+            <button id="importProgressTop" type="button">导入进度</button>
+            <button id="exportProgressTop" class="primary" type="button">导出进度</button>
           </div>
         </header>
 
         <section id="notice" class="notice" hidden></section>
-
-        <section class="type-board" aria-label="题型分类">
-          <button class="type-button active" data-type-view="practice" type="button" aria-pressed="true">
-            <span>综合知识选择题</span>
-            <strong id="choiceTypeCount">加载中</strong>
-            <small>客观题 · 自动判分</small>
-          </button>
-          <button class="type-button" data-type-view="cases" type="button" aria-pressed="false">
-            <span>案例分析问答题</span>
-            <strong id="caseTypeCount">加载中</strong>
-            <small>主观题 · 看参考答案</small>
-          </button>
-          <button class="type-button" data-type-view="essays" type="button" aria-pressed="false">
-            <span>架构论文题</span>
-            <strong id="essayTypeCount">加载中</strong>
-            <small>写作题 · 看写作要点</small>
-          </button>
-        </section>
 
         <section id="practiceView" class="view active-view">
           <div class="mode-board">
@@ -104,13 +87,13 @@
             </button>
           </div>
 
-          <section class="chapter-board" aria-label="章节进度">
-            <div class="chapter-head">
-              <h3>章节进度</h3>
-              <span>按模块刷题 · 看进度和薄弱点</span>
-            </div>
+          <details class="chapter-drawer">
+            <summary>
+              <span>章节进度</span>
+              <strong>展开模块进度和章节练习</strong>
+            </summary>
             <div id="chapterList" class="chapter-list"></div>
-          </section>
+          </details>
 
           <details class="filter-drawer">
             <summary>筛选、复习题数与关键词</summary>
@@ -251,19 +234,27 @@
         <section id="dataView" class="view">
           <div class="data-grid">
             <div class="panel">
+              <h3>进度存档</h3>
+              <p>导出的 JSON 包含作答记录和收藏题。换电脑、换浏览器时，先读取文件摘要，再确认导入替换当前进度。</p>
+              <div id="progressPreview" class="progress-preview">
+                <p class="muted">还没有读取进度 JSON。</p>
+              </div>
+              <div class="button-row">
+                <button id="exportProgress" class="primary" type="button">导出进度 JSON</button>
+                <button id="selectProgressFile" type="button">读取进度 JSON</button>
+                <button id="applyProgressImport" type="button" disabled>应用读取的进度</button>
+              </div>
+              <input id="importProgress" type="file" accept="application/json" hidden />
+            </div>
+            <div class="panel">
               <h3>AI 友好诊断</h3>
-              <p>导出的 JSON 包含题库来源、模块统计、近期错题、全部作答轨迹和诊断提示。发给 Codex 就能继续复盘。</p>
+              <p>诊断 JSON 包含题库来源、模块统计、近期错题和全部作答轨迹。发给 Codex 就能继续复盘。</p>
               <button id="exportDiagnosis" class="primary" type="button">下载 ai-diagnosis.json</button>
             </div>
             <div class="panel">
-              <h3>练习记录备份</h3>
-              <p>备份只包含你的作答记录，不包含浏览器外的任何账号信息。</p>
+              <h3>清空本地记录</h3>
+              <p>只清空当前浏览器里的作答记录和收藏题，不影响你已经导出的 JSON 文件。</p>
               <div class="button-row">
-                <button id="exportProgress" type="button">导出进度</button>
-                <label class="file-button">
-                  导入进度
-                  <input id="importProgress" type="file" accept="application/json" />
-                </label>
                 <button id="clearProgress" class="danger" type="button">清空记录</button>
               </div>
             </div>
